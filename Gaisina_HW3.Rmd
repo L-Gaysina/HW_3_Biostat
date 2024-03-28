@@ -1,0 +1,194 @@
+---
+title: "Hw3_Gaisina"
+author: "Gaisina Liana"
+date: "2024-03-28"
+output: html_document
+---
+
+# Homework № **3. Расчет описательных статистик**
+
+```{r}
+# Библитеки
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+```
+
+## Чтение датасета
+
+```{r}
+# Загружаем датасет из файла xlsx
+data <- read_excel(path = 'pima.xlsx')
+
+# Проверяем типы данных
+str(data)
+```
+
+```{r}
+## поменяем тип данных у переменной diabetes на factor
+data$diabetes <- as.factor(data$diabetes)
+
+# Проверяем типы данных
+str(data)
+```
+
+```{r}
+# Проверяем пропущенные значения
+sum(is.na(data))
+
+data <- na.omit(data)
+```
+
+## Описательные статистики
+
+> **Task:** Рассчитайте описательные статистики для переменных `glucose`**,** `pressure`**,** `mass`**.**
+
+```{r}
+# Расчет описательных статистик для glucose
+glucose_summary <- data %>% 
+  summarise(
+    Count_Glucose = n(),
+    Mean_Glucose = mean(glucose),
+    SD_Glucose = sd(glucose),
+    Q1_Glucose = quantile(glucose, 0.25),
+    Q3_Glucose = quantile(glucose, 0.75),
+    Min_Glucose = min(glucose),
+    Max_Glucose = max(glucose)
+  )
+
+# Расчет описательных статистик для pressure
+pressure_summary <- data %>% 
+  summarise(
+    Count_Pressure = n(),
+    Mean_Pressure = mean(pressure),
+    SD_Pressure = sd(pressure),
+    Q1_Pressure = quantile(pressure, 0.25),
+    Q3_Pressure = quantile(pressure, 0.75),
+    Min_Pressure = min(pressure),
+    Max_Pressure = max(pressure)
+  )
+
+# Расчет описательных статистик для mass
+mass_summary <- data %>% 
+  summarise(
+    Count_Mass = n(),
+    Mean_Mass = mean(mass),
+    SD_Mass = sd(mass),
+    Q1_Mass = quantile(mass, 0.25),
+    Q3_Mass = quantile(mass, 0.75),
+    Min_Mass = min(mass),
+    Max_Mass = max(mass)
+  )
+
+# Вывод результатов
+head(glucose_summary)
+head(pressure_summary)
+head(mass_summary)
+```
+
+> **Task:** Рассчитайте описательную статистику для переменной `diabetes`. Создайте на основе переменной `age` новую переменную `age_group`, которая будет отражать следующие возрастные группы: 21–35, 36–49 и 50+. Посчитайте описательную статистику для новой переменной. 
+
+```{r}
+
+# Создание новой переменной age_group
+data <- data %>%
+  mutate(age_group = case_when(
+    age >= 21 & age <= 35 ~ "21–35",
+    age >= 36 & age <= 49 ~ "36–49",
+    age >= 50 ~ "50+",
+    TRUE ~ NA_character_
+  ))
+
+# Расчет абсолютных и относительных частот для diabetes и age_group
+data %>% 
+  count(diabetes) %>%
+  mutate(Proportion = n / sum(n))
+
+data %>%
+  count(age_group) %>%
+  mutate(Proportion = n / sum(n))
+
+
+```
+
+> **Task:** Определите 90% доверительный интервал для переменной`pedigree`
+
+```{r}
+# Расчет доверительного интервала
+data %>% 
+  summarise(
+    Mean = mean(pedigree, na.rm = TRUE),
+    SD = sd(pedigree, na.rm = TRUE),
+    N = n(),
+    SEM = SD / sqrt(N), # Стандартная ошибка среднего
+    Lower_Bound = Mean - qt(0.95, N-1) * SEM, # qt используется для 90% интервала (двусторонний тест)
+    Upper_Bound = Mean + qt(0.95, N-1) * SEM
+  )
+```
+
+> **Task:** Постройте график плотности вероятности для переменной `glucose` и отметьте на нем среднее значение. Для той же переменной постройте гистограмму. Постройте два ящика с усами для значений `pos` и `neg` соответственно переменной `diabetes`. 
+
+```{r}
+# График плотности вероятности для переменной glucose
+mean_glucose <- mean(data$glucose) # Вычисляем среднее значение glucose
+
+ggplot(data, aes(x = glucose)) +
+  geom_density(fill = "skyblue", alpha = 0.5) + # Плотность
+
+  geom_vline(xintercept = mean_glucose, color = "red", linetype = "dashed") + 
+  labs(title = "Распределение уровня глюкозы в кров",
+       subtitle = paste("Среднее значение:", round(mean_glucose, 2)),
+       x = "Уровень глюкозы",
+       y = "Плотность") +
+  theme_minimal() 
+
+
+```
+
+```{r}
+# Гистограмма для glucose
+ggplot(data, aes(x = glucose)) +
+  geom_histogram(binwidth = 10, fill = "skyblue", color = "black", alpha = 0.7) + # Гистограмма
+  geom_vline(xintercept = mean_glucose, color = "red", linetype = "dashed") + # Среднее значение
+  labs(title = "Гистограмма распределения уровня глюкозы в крови",
+       subtitle = paste("Выделено среднее значение:", round(mean_glucose, 2)),
+       x = "Уровень глюкозы в крови",
+       y = "Частота") +
+  theme_minimal()
+```
+
+```{r}
+
+# Ящики с усами для значений pos и neg переменной diabetes
+ggplot(data, aes(x = diabetes, y = glucose, fill = diabetes)) +
+  geom_boxplot() + # Ящик с усами
+  scale_fill_manual(values = c("pos" = "skyblue", "neg" = "pink")) + # Настраиваем цвета
+  labs(title = "Распределение уровня глюкозы в зависимости от наличия диабета",
+       x = "Наличие диабета",
+       y = "Уровень глюкозы") +
+  theme_minimal()
+```
+
+> **Task:** Постройте на одном графике две диаграммы рассеяния для наличия или отсутствия диабета. По оси X представьте значения обхвата трицепса, а по оси Y — массу тела. Выполните окрашивание, заливку и группирование по переменной `diabetes`.
+
+```{r}
+# Удаление строк, где обхват трицепса или масса тела содержат нулевые значения
+data_clean <- data %>%
+  filter(triceps != 0, mass != 0)
+
+# Построение графика
+ggplot(data_clean, aes(x = triceps, y = mass)) +
+  # Используем заливку и окрашивание
+  geom_point(aes(fill = diabetes), color = "black", shape = 21, size = 3, alpha=0.9) + 
+  # Настраиваем цвета заливки
+  scale_fill_manual(values = c("pos" = "skyblue", "neg" = "pink")) + 
+  # Разделяем по переменной diabetes горизонтально
+  facet_grid(. ~ diabetes) + 
+  labs(title = "Взаимосвязь между обхватом трицепса и массой тела в зависимости от статуса диабета",
+       x = "Обхват трицепса (см)",
+       y = "Масса тела (кг)",
+       fill = "Статус диабета") +
+  theme_minimal()
+
+```
