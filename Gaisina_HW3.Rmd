@@ -26,7 +26,7 @@ str(data)
 ```
 
 ```{r}
-## поменяем тип данных у переменной diabetes на factor
+## Поменяем тип данных у переменной diabetes на factor
 data$diabetes <- as.factor(data$diabetes)
 
 # Проверяем типы данных
